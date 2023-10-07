@@ -2,13 +2,14 @@
 #include <iostream>
 #include <utils.h>
 #include <math.h>
+#include <eigen3/Eigen/Dense>
 
-Constraint::Constraint(double value, double *p_q1, double *p_q2) : value(value), p_q1(p_q1), p_q2(p_q2) {}
+Constraint::Constraint(double value, vector_it &q1, vector_it &q2) : value(value), q1(q1), q2(q2) {}
 
 Constraint& Constraint::operator=(Constraint&& other) 
 {
-    value = other.value; p_q1 = other.p_q1; p_q2 = other.p_q2;
-    other.p_q1 = nullptr; other.p_q2=nullptr;
+    value = other.value; 
+    q1 = other.q1; q2 = other.q2;
     return *this;
 }
 

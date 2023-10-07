@@ -1,9 +1,13 @@
+#include <eigen3/Eigen/Dense>
+
+typedef Eigen::VectorXd::iterator_type vector_it;
+
 struct Constraint {
-    double value, *p_q1, *p_q2;
-    double diff[3], norm, derivative[3];
+    double value, norm, diff[3], derivative[3];
+    vector_it q1, q2;
 
     Constraint(){};
-    Constraint(double value, double *p_q1, double *p_q2);
+    Constraint(double value, vector_it &q1, vector_it &q2);
     Constraint& operator=(Constraint&& other);
 
     void eval();
