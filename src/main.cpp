@@ -1,65 +1,109 @@
 #include <iostream>
 #include <utils.h>
 #include <eigen3/Eigen/Dense>
-#define N   3
-#define M   3
+#include <eigen3/Eigen/Sparse>
+#include <eigen3/Eigen/OrderingMethods>
+#include <chrono>
+#include <thread>
 
+#define N 3
+#define M 3
+#define L 1
+#define FRAMETIME 500
 
-void grid(double *positions, Constraint *constraints, int n, int m, double l)
+void grid(Eigen::VectorXd &positions, Eigen::VectorXd &fixpts, Constraints &constraints)
 {
-    double *p_pos = positions;
+    auto p_pos = positions.begin();
     
-    for(int i=0; i<n; i++) for(int j=0; j<m; j++) 
+    for(int i=0; i<N; i++) for(int j=0; j<M; j++) 
     {
-        *p_pos++ = i*l; //x
-        *p_pos++ = j*l; //y
+        *p_pos++ = i*L; //x
+        *p_pos++ = j*L; //y
         *p_pos++ = 0; //z
     }
+    
+    p_pos = positions.begin();
 
-    Constraint *p_constraints = constraints;
     //horizontal bonds
-    for(int i=0; i<n; i++) for(int j=0; j<(m-1); j++) *p_constraints++ = Constraint(l, positions+3*(i*n+j), positions+3*(i*n+j+1));
+    for(int i=0; i<N; i++) for(int j=0; j<(M-1); j++) constraints.add_distance_constraint(
+        Distance_Constraint(L, p_pos+3*(i*M+j), p_pos+3*(i*M+j+1))
+        );
 
     //vertical bonds
-    for(int j=0; j<m; j++) for(int i=0; i<(n-1); i++) *p_constraints++ = Constraint(l, positions+3*(i*n+j), positions+3*((i+1)*n+j));
-}
+    for(int j=0; j<M; j++) for(int i=0; i<(N-1); i++) constraints.add_distance_constraint(
+        Distance_Constraint(L, p_pos+3*(i*M+j), p_pos+3*((i+1)*M+j))
+        );
 
-void grid(Eigen::VectorXd &positions, Constraint *constraints, int n, int m, double l)
-{   
-    auto it = positions.begin();
-    for(int i=0; i<n; i++) for(int j=0; j<m; j++) 
+    //fixpoints
+    for(int j=0; j<M; j++)
     {
-        *it++ = i*l; //x
-        *it++ = j*l; //y
-        *it++ = 0; //z
+        fixpts(3*j+1) = j*L;
+        constraints.add_fixpoint_constraint(Fixpoint_Constraint(p_pos+3*j, fixpts.begin()+3*j));
+        
     }
-
-    Constraint *p_constraints = constraints;
-    //horizontal bonds
-    for(int i=0; i<n; i++) for(int j=0; j<(m-1); j++) *p_constraints++ = Constraint(l, positions+3*(i*n+j), positions+3*(i*n+j+1));
-
-    //vertical bonds
-    for(int j=0; j<m; j++) for(int i=0; i<(n-1); i++) *p_constraints++ = Constraint(l, positions+3*(i*n+j), positions+3*((i+1)*n+j));
 }
 
 
 int main()
-{
-    int n,m,nConstraints;
-    n=3;
-    m=3;
-    nConstraints = n*(m-1) + m*(n-1);
+{    
+    int n_coords = 3*N*M;
+    Eigen::VectorXd q(n_coords), v(n_coords), Q(n_coords);
+    Eigen::VectorXd f(Eigen::VectorXd::Zero(Eigen::Index(3*M)));
 
-    double *positions = new double[3*n*m];
+    for(int i=0; i<N*M; i++) Q(3*i+2) = -9.81;
+
+    Constraints c;
     
-    Eigen::VectorXd positions;
+    grid(q,f,c);
 
-    Constraint *constraints = new Constraint[nConstraints];
+    c.reserve();
 
-    grid(positions,constraints,n,m,3.);
+    Jacobian Jacobian(N,M,c,q);
+
+    JQDeriv Jdq(N,M,c,q,v);
+
+    double dt = double(FRAMETIME) / double(1000);
+
+    Eigen::SparseQR<Eigen::SparseMatrix<double>, Eigen::COLAMDOrdering<int>> solver;
+
+    Eigen::SparseMatrix<double> J, JT, A;
     
-    Jacobian J(n,m,nConstraints,constraints,positions);
-    printMatrix(nConstraints,3*n*m,J.eval());
+    Eigen::VectorXd y, dq, Qc;
 
-    delete[] positions; delete[] constraints;
+    Screen s(50,50,1,1);
+
+    Eigen::VectorXd::iterator it;
+
+    double x_,y_,z_;
+
+    while(1)
+    {
+        
+        c.eval();
+
+        dq = v * dt;
+        
+        std::cout << q << std::endl;
+
+        J = Jacobian.eval();
+
+        std::cout << J << std::endl;
+
+        JT = J.transpose();
+        A = J*JT;
+        A.makeCompressed();
+
+        solver.compute(A);
+        
+        //Ax = b <=> (J*J^T) * y = -J*dq - J*Q
+        y = solver.solve(-Jdq.eval() - J*q);
+        
+        v += (Q + JT*y) * dt;
+
+        q += dq;
+
+        std::cout << q << std::endl;
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(FRAMETIME));
+    }
 }
