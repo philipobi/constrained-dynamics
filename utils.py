@@ -1,7 +1,6 @@
 import numpy as np
 from scipy.sparse import bsr_array
-from scipy.sparse.linalg import lsmr as lsq_solve
-from time import sleep
+from scipy.sparse.linalg import lsmr,svds,cgs
 
 class Constraint:
     pass
@@ -58,8 +57,8 @@ class Simulation():
         self.m = m
         self.n = n
         self.L = L
-        self.ks = 5
-        self.kd = 5
+        self.ks = .001
+        self.kd = .001
         self.null = np.zeros(3*m*n,dtype=np.float64)
 
         q = []
@@ -98,6 +97,8 @@ class Simulation():
             constraint.construct_jacobian(indptr,indices,data,self.q)
 
         self.J = bsr_array((data,indices,indptr),shape=(a,b))
+        self.J.data[np.abs(self.J.data) < 1e-5] = 0
+        self.J.eliminate_zeros()
         self.J_T = self.J.transpose()
         
         self.dJdq = np.array([constraint.construct_djdq(self.dq) for constraint in self.constraints], dtype=np.float64)
@@ -106,27 +107,29 @@ class Simulation():
         self.left = self.J @ self.J_T
         self.right = -self.dJdq -self.J.dot(self.f_ext) -self.ks*self.C - self.kd*self.dC
 
-    def solve(self):
-        self.x, self.istop, itn, normr = lsq_solve(self.left,self.right)[:4]
+    def solve_lsq(self):
+        self.x, self.istop, itn, normr = lsmr(self.left,self.right)[:4]
         self.f_constraint = self.J_T.dot(self.x) if self.istop < 7 else self.null
-        print(self.istop)
+
+    def solve_cgs(self):
+        self.x,self.code = cgs(self.left,self.right,maxiter=1000)
+        self.f_constraint = self.J_T.dot(self.x) #if not self.code else self.null
+
+    def solve_svd(self):
+        U,s,V_T = svds(self.left,k=10)
+        #self.left_approx = U @ np.diag(s) @ V_T
+        
+        self.left_inv = V_T.transpose() @ np.diag(1/s) @ U.transpose()
+        #self.left_inv[np.abs(self.left_inv)<1e-5] = 0
+        self.x = self.left_inv @ self.right
+        self.f_constraint = self.J_T.dot(self.x)
 
     def prop(self,dt):
-        self.q += self.dq*dt
         self.dq += (self.f_ext+self.f_constraint)*dt
+        self.q += self.dq*dt
 
     def run(self,dt):
         self.eval()
-        self.solve()
+        self.solve_cgs()
         self.prop(dt)
 
-    
-    
-
-
-
-
-
-    
-
-    
