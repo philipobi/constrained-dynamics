@@ -14,12 +14,12 @@ from utils import Simulation
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 title = ax.set_title('3D Test')
-ax.axes.set_xlim3d(left=-15,right=15)
-ax.axes.set_ylim3d(bottom=-15,top=15)
-ax.axes.set_zlim3d(bottom=-15,top=15)
+ax.axes.set_xlim3d(left=-30,right=30)
+ax.axes.set_ylim3d(bottom=-30,top=30)
+ax.axes.set_zlim3d(bottom=-30,top=30)
 
 
-sim = Simulation(3,3,3)
+sim = Simulation(10,10,3)
 
 data=sim.q.reshape(-1,3)
 graph=ax.scatter(data[:,0], data[:,1], data[:,2])

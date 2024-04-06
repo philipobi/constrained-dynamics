@@ -1,4 +1,5 @@
 CC=g++ -std=c++17
+C=gcc
 INCL=-I"/Users/philip/Documents/coding/terminal graphics/include" -I/opt/homebrew/Cellar/eigen/3.4.0_1/include
 
 main: src/main.cpp src/utils.cpp 
@@ -10,8 +11,8 @@ donut: src/donut.cpp src/utils.cpp
 debug_main: src/main.cpp src/utils.cpp 
 	$(CC) $(INCL) src/main.cpp src/utils.cpp -g -o bin/main
 
-test: src/test.cpp
+test: src/test.c
 
-	$(CC) $(INCL) src/test.cpp src/utils.cpp -o bin/test
+	$(C) src/test.c -o bin/test
 
 

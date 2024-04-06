@@ -57,8 +57,8 @@ class Simulation():
         self.m = m
         self.n = n
         self.L = L
-        self.ks = .001
-        self.kd = .001
+        self.ks = .1
+        self.kd = .1
         self.null = np.zeros(3*m*n,dtype=np.float64)
 
         q = []
