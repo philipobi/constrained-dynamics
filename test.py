@@ -32,6 +32,6 @@ def update_graph(num):
     graph._offsets3d = (data[:,0], data[:,1], data[:,2])
 
 ani = matplotlib.animation.FuncAnimation(fig, update_graph, 2000, 
-                               interval=1, blit=False)
+                               interval=500, blit=False)
 
 plt.show()
