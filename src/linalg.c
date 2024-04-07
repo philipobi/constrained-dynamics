@@ -1,71 +1,66 @@
-#include <definitions.h>
+#include <globaldef.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
 
-typedef struct block {
-    int i;
-    int j;
-    int ilength;
-    int jlength;
+typedef struct coo_mat {
+    int n, m, nnz;
+    int *row_coords, *col_coords;
     sfloat *data;
-} block;
+} coo_mat;
 
-typedef struct bs_mat {
-    int n;
-    int m;
-    int n_blocks;
-    block *blocks;
-} bs_mat;
-
-
-void bs_to_mat(const bs_mat *matrix, sfloat *data)
+void coo_to_arr(const coo_mat* matrix, sfloat *arr)
 {
-    block *p_block = matrix->blocks;
-    for(int n = 0; n < matrix->n_blocks; n++, p_block++) {
-        for(int i=0; i < p_block->ilength; i++) {
-            memcpy(
-                data + (matrix->m) * (p_block->i + i) + p_block->j,
-                p_block->data + i * p_block->jlength,
-                p_block->jlength * sizeof(sfloat)
-                );
-        }
+    int 
+    *p_row_coord = matrix->row_coords,
+    *p_col_coord = matrix->col_coords,
+    m = matrix->m;
+    sfloat *p_data = matrix->data;
+
+    for(int k = 0; k < matrix->nnz; k++, p_row_coord++, p_col_coord++, p_data++) {
+        arr[*p_row_coord * m + *p_col_coord] = *p_data;
     }
 }
 
-void print_mat(const sfloat *mat, int n, int m)
-{   
-    for(int i=0; i<n; i++) {
-        for(int j=0; j<m; j++) {
-            printf("%3.0f    ", mat[i*m + j]);
+void print_arr(const sfloat *arr, int n, int m)
+{
+    int i,j;
+    for(i = 0; i < n; i++) {
+        for(j = 0; j < m; j++) {
+            printf("%2.0f    ", arr[i*m + j]);
         }
         printf("\n");
     }
 }
 
-void print_bs_mat(const bs_mat *matrix)
+void print_coo(const coo_mat *matrix)
 {
-    sfloat *data = (sfloat *) malloc(matrix->n * matrix-> m * sizeof(sfloat));
-    if (data == NULL) return;
-    bs_to_mat(matrix, data);
-    print_mat(data, matrix->n, matrix->m);
-    free(data);
+    int
+    n = matrix->n,
+    m = matrix->m;
+    sfloat *arr = (sfloat *) malloc(n * m * sizeof(sfloat));
+    if(arr == NULL) return;
+
+    coo_to_arr(matrix, arr);
+    print_arr(arr, n, m);
+
+    free(arr);
 }
 
 void test()
 {
-    sfloat data[] = {1, 2, 3, 4};
-    block blocks[] = {
-        {0,0,2,2,data},
-        {2,2,2,2,data},
-        {4,4,2,2,data},
-        {6,6,2,2,data},
-        {8,8,2,2,data}
+    int row_coords[] = {0,0,1,1,2,2,3,3};
+    int col_coords[] = {0,1,0,1,2,3,2,3};
+    sfloat data[] = {1,2,3,4,5,6,7,8};
+    coo_mat matrix = {
+        .n = 4,
+        .m = 4,
+        .nnz = 8,
+        .row_coords = row_coords,
+        .col_coords = col_coords,
+        .data = data
     };
-
-    bs_mat matrix = {10, 10, 5, blocks};
-
-    print_bs_mat(&matrix);
+    print_coo(&matrix);
 }
 
 
