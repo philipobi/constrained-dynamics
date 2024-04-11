@@ -20,29 +20,8 @@
 
 int main()
 {
-    int row1[] = {
-        0,1,2,
-        6,7,8,
-        9,10,11
-    };
-    int row2[] = {
-        3,4,5,
-        6,7,8,
-        12,13,14
-    };
-
-    int 
-    m=0,
-    *data1, *data2;
-
-    for (int n=0; n < 9; n+=3) {
-        for (; m<9; m+=3) {
-            if(row1[n] < row2[m]) break;
-            if(row1[n] > row2[m]) continue;
-            data1 = row1 + n;
-            data2 = row2 + m;
-            for (int k=0; k<3; k++) printf("(%i,%i)\n",*data1++,*data2++);
-        }
-    }
+    int i=2;
+    int out = i++ - i;
+    printf("%d\n", out);
     return 0;
 }

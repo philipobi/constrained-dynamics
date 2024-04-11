@@ -20,57 +20,33 @@ typedef struct sparse_matrix {
     sparse_row *row_mem;
 } sparse_matrix;
 
-sparse_matrix *init(int n, int m)
+
+void sparse_to_array(const sparse_matrix *matrix, sfloat *array)
 {
-    sparse_matrix *matrix = malloc(sizeof(sparse_matrix)); 
-    sparse_row **p_rows = malloc(n * sizeof(sparse_row *));
-    sparse_row *rows = malloc(n * sizeof(sparse_row));
-
-    if (!matrix || !p_rows || !rows) goto error;
-    
-    int i;
-    sparse_row **p_rows_c = p_rows;
-    sparse_row *p_row = rows;
-    for (i = 0; i < n; i++, p_row++, p_rows_c++) {
-        p_row->col = malloc(m * sizeof(int));
-        p_row->data = malloc(m * sizeof(sfloat));
-        if (!p_row->col || !p_row->data) goto cleanup;
-        p_row->nnz = 0;
-        *p_rows_c = p_row;
+    sparse_row *p_row;
+    for (int i=0; i<matrix->n; i++) {
+        if (!(p_row = matrix->rows[i])) continue;
+        for (int k=0; k<p_row->nnz; k++) array[i*matrix->m + p_row->col[k]] = p_row->data[k];
     }
-    
-    matrix->rows = p_rows;
-    matrix->row_mem = rows;
-    return matrix;
-
-    cleanup:
-    p_rows_c = p_rows;
-    p_row = rows;
-    for (int k = 0; k < i; k++, p_row++, p_rows_c++) {
-        *p_rows_c = NULL;
-        free(p_row->col);
-        free(p_row->data);
-    }
-    matrix->rows = NULL;
-    
-    error:
-    free(p_rows);
-    free(rows);
-    free(matrix);
-    return NULL;
 }
 
-void unref(sparse_matrix *matrix)
+void print_array(sfloat *array, int n, int m)
 {
-    sparse_row **p_rows = matrix->rows;
-    sparse_row *p_row;
-    for(int i = 0; i < matrix->n; i++) {
-        if ((p_row = *p_rows) == NULL) continue;
-        free(p_row->col);
-        free(p_row->data);
-        *p_rows++ = NULL;
+    int i,j;
+    for (i=0; i<n; i++) {
+        for (j=0; j<m; j++) printf("%5.0f", array[i*m + j]);
+        printf("\n");
     }
-    free(matrix->rows[0]);
+}
+
+
+void print_sparse(const sparse_matrix *matrix) 
+{  
+    sfloat *arr = malloc(matrix->n * matrix->m * sizeof(sfloat));
+    if (!arr) return;
+    sparse_to_array(matrix, arr);
+    print_array(arr, matrix->n, matrix->m);
+    free(arr);
 }
 
 sfloat sparse_mul_rows(const sparse_row *p_row_i, const sparse_row *p_row_j)
@@ -88,6 +64,7 @@ sfloat sparse_mul_rows(const sparse_row *p_row_i, const sparse_row *p_row_j)
             for(k = 0; k < 3; k++) sum += (*data1++) * (*data2++);
         }
     }
+    return sum;
 }
 
 void sparse_mul_transpose(const sparse_matrix *matrix, sparse_matrix *result_matrix)
@@ -127,3 +104,47 @@ void sparse_mul_transpose(const sparse_matrix *matrix, sparse_matrix *result_mat
     }
 }
 
+void test()
+{
+    sparse_matrix A = {.n = 6, .m = 12};
+    sparse_row rows[5];
+    
+    sfloat values[] = {1,1,1,1,1,1};
+
+    int data0[] = {0,1,2,6,7,8};
+    rows[0].col = data0;
+    rows[0].data = values;
+    rows[0].nnz = 6;
+    
+    int data1[] = {3,4,5,9,10,11};
+    rows[1].col = data1;
+    rows[1].data = values;
+    rows[1].nnz = 6;
+    
+    int data2[] = {0,1,2,9,10,11};
+    rows[2].col = data2;
+    rows[2].data = values;
+    rows[2].nnz = 6;
+
+    int data3[] = {0,1,2,3,4,5};
+    rows[3].col = data3;
+    rows[3].data = values;
+    rows[3].nnz = 6;
+    
+    int data4[] = {6,7,8,9,10,11};
+    rows[4].col = data4;
+    rows[4].data = values;
+    rows[4].nnz = 6;
+
+    sparse_row *p_rows[] = {rows, rows+1, rows+2, NULL, rows+3, rows+4};
+    A.rows = p_rows;
+
+    print_sparse(&A);
+}
+
+
+int main ()
+{
+    test();
+    return 0;
+}
