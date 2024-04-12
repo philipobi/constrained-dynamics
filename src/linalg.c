@@ -8,7 +8,6 @@
 #define BLKSIZE 3
 #define NBLK 0
 #define BUFSIZE_MATRIX 10000
-#define BUFSIZE_NUMBER 100
 
 typedef struct sparse_row
 {
@@ -263,75 +262,69 @@ test ()
     destruct_matrix (p_result);
 }
 
-int 
-parse_row (sfloat *arr, char *str, int bufsize_number, int * p_ncol)
+int
+parse_row (FILE* p_file, sfloat *arr, char *line, int bufsize, int *p_ncol)
 {
-    int in_row = 0, in_num = 0, ncol = 0;
-    char c, *p_str = str;
-    while ((c = getchar()) != EOF && c != '\n' && p_str - str < bufsize_number) {
-        if (!in_num && c != ' ') {
-            in_num = 1;
-            *p_str++ = c;
-            continue;
-        }
-        if (in_num && c == ' ') {
-            in_num = 0;
-            *p_str++ = '\0';
-            *arr++ = strtof(str, NULL);
-            ncol++;
-            p_str = str;
-            continue;
-        }
-        *p_str++ = c;
-    }
-    
-    if (in_num && p_str - str < bufsize_number) {
-        *p_str++ = '\0';
-        *arr++ = strtof(str, NULL);
-        ncol++;
-    }
+    char c, *p_line = line;
+    while ((c = fgetc (p_file)) != EOF && c != '\n' && p_line - line < bufsize - 1)
+        *p_line++ = c;
+    *p_line++ = '\0';
 
-    *p_ncol = ncol;
-    
+    sfloat val, *p_arr = arr;
+    char *p1 = line, *p2;
+    while ((val = strtof (p1, &p2)) || p2 - p1)
+        {
+            p1 = p2;
+            *p_arr++ = val;
+        }
+    *p_ncol = p_arr - arr;
+
     return c == EOF ? 1 : 0;
 }
 
-sfloat * 
-parse_array (int *p_n, int *p_m)
+void
+parse_array (FILE *p_file, sfloat **p_parsed_arr, int *p_n, int *p_m)
 {
-    sfloat *arr = malloc(BUFSIZE_MATRIX * sizeof(sfloat));
-    char *str = malloc(BUFSIZE_NUMBER * sizeof(char));
-    if (!arr || !str) {
-        free(arr);
-        free(str);
-        *p_n = 0;
-        *p_m = 0;
-        return NULL;
-    };
+    sfloat *arr = malloc (BUFSIZE_MATRIX * sizeof (sfloat));
+    char *line = malloc (BUFSIZ * sizeof (char));
+    if (!arr || !line)
+        {
+            free (arr);
+            free (line);
+            *p_n = 0;
+            *p_m = 0;
+            *p_parsed_arr = NULL;
+            return;
+        };
 
     sfloat *p_arr = arr;
     int n = 0, m = 0, ncol, eof_flag;
-    do {
-        eof_flag = parse_row(p_arr, str, BUFSIZE_NUMBER, &ncol);
-        if(ncol) {
-            n++;
-            p_arr += ncol;
-            m = ncol;
-            }
+    do
+        {
+            eof_flag = parse_row (p_file, p_arr, line, BUFSIZ, &ncol);
+            if (ncol)
+                {
+                    n++;
+                    p_arr += ncol;
+                    m = ncol;
+                }
+        }
+    while (!eof_flag);
 
-    } while (!eof_flag);
-
+    free(line);
     *p_n = n;
     *p_m = m;
-    return arr;
+    *p_parsed_arr = arr;
 }
 
 void
 test_parse (void)
 {
     int n, m;
-    sfloat *arr = parse_array(&n, &m);
-    print_array(arr, n, m);
+    sfloat *arr;
+    parse_array (stdin, &arr, &n, &m);
+    printf("(%d, %d)", n, m);
+    print_array (arr, n, m);
     free (arr);
 }
 

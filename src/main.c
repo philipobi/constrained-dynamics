@@ -1,7 +1,8 @@
 #include <stdio.h>
+#include <stdlib.h>
 
 int main()
 {
-    printf("%3d\n", 100000);
+    int val = 0.0 || 3;
     return 0;
 }
