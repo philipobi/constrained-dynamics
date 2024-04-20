@@ -6,10 +6,11 @@
 #define BUFSIZE_LINE 1024
 
 static int
-parse_row (FILE* p_file, sfloat *arr, char *line, int bufsize, int *p_ncol)
+parse_row (FILE *p_file, sfloat *arr, char *line, int bufsize, int *p_ncol)
 {
     char c, *p_line = line;
-    while ((c = fgetc (p_file)) != EOF && c != '\n' && p_line - line < bufsize - 1)
+    while ((c = fgetc (p_file)) != EOF && c != '\n'
+           && p_line - line < bufsize - 1)
         *p_line++ = c;
     *p_line++ = '\0';
 
@@ -54,20 +55,65 @@ parse_array (FILE *p_file, sfloat **p_parsed_arr, int *p_n, int *p_m)
         }
     while (!eof_flag);
 
-    free(line);
+    free (line);
     *p_n = n;
     *p_m = m;
     *p_parsed_arr = arr;
 }
 
 void
-print_array (sfloat *arr, int n, int m)
+print_array (sfloat *p_arr, int n, int m)
 {
+    printf("(%d, %d)\n", n, m);
     int i, j;
     for (i = 0; i < n; i++)
         {
             for (j = 0; j < m; j++)
-                printf ("%3.0f, ", arr[i * m + j]);
+                printf ("%3.0f, ", p_arr[i * m + j]);
             printf ("\n");
         }
+}
+
+sfloat
+dot (const sfloat *p_vec1, const sfloat *p_vec2, const int n)
+{
+    int i;
+    sfloat sum;
+    for (i = 0, sum = 0; i < n; i++)
+        sum += *p_vec1++ * *p_vec2++;
+    return sum;
+}
+
+sfloat
+norm2 (const sfloat *p_vec, const int n)
+{
+    int i;
+    sfloat sum;
+    for (i = 0, sum = 0; i < n; i++, p_vec++)
+        sum += square (*p_vec);
+    return sum;
+}
+
+void
+add_vec (const sfloat *p_vec1, const sfloat *p_vec2, const int n,
+         sfloat *p_vec_result)
+{
+    for (int i = 0; i < n; i++)
+        *p_vec_result++ = *p_vec1++ + *p_vec2++;
+}
+
+void
+sub_vec (const sfloat *p_vec1, const sfloat *p_vec2, const int n,
+         sfloat *p_vec_result)
+{
+    for (int i = 0; i < n; i++)
+        *p_vec_result++ = *p_vec1++ - *p_vec2++;
+}
+
+void
+mul_vec (const sfloat *p_vec, const sfloat a, const int n,
+         sfloat *p_vec_result)
+{
+    for (int i = 0; i < n; i++)
+        *p_vec_result++ = a * *p_vec++;
 }
