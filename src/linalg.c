@@ -62,9 +62,9 @@ parse_array (FILE *p_file, sfloat **p_parsed_arr, int *p_n, int *p_m)
 }
 
 void
-print_array (sfloat *p_arr, int n, int m)
+print_array (const sfloat *p_arr, const int n, const int m, const char *str)
 {
-    printf("(%d, %d)\n", n, m);
+    printf ("(%d, %d)\t%s\n", n, m, str);
     int i, j;
     for (i = 0; i < n; i++)
         {
@@ -94,26 +94,32 @@ norm2 (const sfloat *p_vec, const int n)
     return sum;
 }
 
-void
-add_vec (const sfloat *p_vec1, const sfloat *p_vec2, const int n,
-         sfloat *p_vec_result)
+void 
+add_vec (const sfloat *p_x, const sfloat a, const sfloat *p_v, sfloat *p_y, const int n)
+// performs y = x + a*v
 {
-    for (int i = 0; i < n; i++)
-        *p_vec_result++ = *p_vec1++ + *p_vec2++;
+    for (int i = 0; i < n; i++) *p_y++ = *p_x++ + a * *p_v++;
 }
 
 void
-sub_vec (const sfloat *p_vec1, const sfloat *p_vec2, const int n,
-         sfloat *p_vec_result)
+add_vec_inplace (sfloat *p_x, const sfloat a, const sfloat *p_v, const int n)
+// performs x = x + a*v
 {
     for (int i = 0; i < n; i++)
-        *p_vec_result++ = *p_vec1++ - *p_vec2++;
+        *p_x++ += a * *p_v++;
 }
 
 void
-mul_vec (const sfloat *p_vec, const sfloat a, const int n,
-         sfloat *p_vec_result)
+add_2vec_inplace (sfloat *p_x, const sfloat a, const sfloat *p_u, const sfloat b,
+          const sfloat *p_v, const int n)
+// performs x = x + a*u + b*v
 {
-    for (int i = 0; i < n; i++)
-        *p_vec_result++ = a * *p_vec++;
+    for (int i = 0; i < n; i++, p_x++)
+        *p_x = *p_x + a * *p_u++ + b * *p_v++;
+}
+
+void
+copy_vec (const sfloat *p_src, sfloat *p_dest, const int n)
+{
+    for (int i = 0; i < n; i++) *p_dest++ = *p_src++;
 }

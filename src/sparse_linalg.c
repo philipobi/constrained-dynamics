@@ -95,7 +95,7 @@ print_sparse (const sparse_matrix *p_matrix)
     if (!arr)
         return;
     sparse_to_array (p_matrix, arr);
-    print_array (arr, p_matrix->n, p_matrix->m);
+    print_array (arr, p_matrix->n, p_matrix->m, "");
     free (arr);
 }
 
