@@ -5,8 +5,8 @@
 
 typedef struct simulation {
     int n, m;
-    sfloat *q, *dq, *C, *dJdq;
-    sparse_matrix *J;
+    sfloat *q, *dq, *d2q, *Q, *C, *dC, *dJdq, *lambda, *b;
+    sparse_matrix *J, *JJT;
     constraints *constraints;
 } simulation;
 

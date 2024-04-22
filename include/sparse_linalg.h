@@ -19,8 +19,12 @@ sparse_matrix *init_sparse(int n, int m, int max_nnz);
 
 void destruct_sparse(sparse_matrix *p_matrix);
 
+void reset_sparse(sparse_matrix *p_matrix);
+
 void sparse_mul_transpose(const sparse_matrix *p_matrix, sparse_matrix *p_matrix_result);
 
 void sparse_mul_vec(const sparse_matrix *p_matrix, const sfloat *p_vec, sfloat *p_vec_result);
+
+void sparse_transpose_mul_vec(const sparse_matrix *p_matrix, const sfloat *p_vec, sfloat *p_vec_result);
 
 void array_to_sparse(const sfloat *arr, int n, int m, sparse_matrix **p_mat);

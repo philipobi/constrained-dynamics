@@ -24,6 +24,7 @@ void destruct_constraints(constraints *constr) {
     free(constr->distance_constraints);
     free(constr->fixpoint_constraints);
     free(constr->fixpoints);
+    free(constr);
 }
 
 void eval_constraints(simulation *sim) {
