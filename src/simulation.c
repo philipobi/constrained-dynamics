@@ -7,8 +7,9 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#define KS 0
-#define KD 0
+#define K_S 0
+#define K_D 0
+#define F_G -9.81
 
 simulation *init_simulation(int n, int m, sfloat L)
 // Initializes Simulation of (n x m) grid with distances L
@@ -23,9 +24,9 @@ simulation *init_simulation(int n, int m, sfloat L)
         !(sim = calloc(1, sizeof(simulation))) ||                                        //
         !(constr = sim->constraints = init_constraints(n * (m - 1) + m * (n - 1), m)) || //
         !(sim->q = malloc(3 * n * m * sizeof(sfloat))) ||                                //
-        !(sim->dq = calloc(3 * n * m, sizeof(sfloat))) ||                                //
-        !(sim->d2q = calloc(3 * n * m, sizeof(sfloat))) ||                               //
-        !(sim->Q = calloc(3 * n * m, sizeof(sfloat))) ||                                 //
+        !(sim->dq = calloc(3 * n * m, sizeof(sfloat))) ||                                // initialize velocities to 0
+        !(sim->d2q = calloc(3 * n * m, sizeof(sfloat))) ||                               // initialize accelerations to 0
+        !(sim->Q = malloc(3 * n * m * sizeof(sfloat))) ||                                //
         !(sim->C = malloc(n_constr = constr->n_constr * sizeof(sfloat))) ||              //
         !(sim->dC = malloc(n_constr * sizeof(sfloat))) ||                                //
         !(sim->dJdq = malloc(n_constr * sizeof(sfloat))) ||                              //
@@ -75,6 +76,14 @@ simulation *init_simulation(int n, int m, sfloat L)
         }
     }
 
+    // setup force vector Q
+    p_vec = sim->Q;
+    for (i = 0; i < 3 * n * m; i++) {
+        *p_vec++ = 0;   // F_x
+        *p_vec++ = 0;   // F_y
+        *p_vec++ = F_G; // F_z
+    }
+
     sim->n = n;
     sim->m = m;
     return sim;
@@ -83,6 +92,7 @@ simulation *init_simulation(int n, int m, sfloat L)
 void destruct_simulation(simulation *sim) {
     if (!sim)
         return;
+    destruct_constraints(sim->constraints);
     free(sim->q);
     free(sim->dq);
     free(sim->d2q);
@@ -92,33 +102,37 @@ void destruct_simulation(simulation *sim) {
     free(sim->dJdq);
     free(sim->lambda);
     free(sim->b);
-    destruct_constraints(sim->constraints);
     destruct_sparse(sim->J);
     destruct_sparse(sim->JJT);
     free(sim);
 }
 
-void propagate_simulation(simulation *sim, sfloat dt) {
+void propagate_simulation(simulation *sim, const sfloat dt) {
 
-    int n = sim->n, m = sim->m;
+    int i, n = sim->n, m = sim->m;
     reset_sparse(sim->J);
     reset_sparse(sim->JJT);
     eval_constraints(sim);
     sparse_mul_transpose(sim->J, sim->JJT);
     sparse_mul_vec(sim->J, sim->dq, sim->dC);
-    sfloat *p_JQ = sim->b;
-    sparse_mul_vec(sim->J, sim->Q, p_JQ);
+    sfloat *JQ = sim->b;
+    sparse_mul_vec(sim->J, sim->Q, JQ);
 
-    sfloat *p_dJdq = sim->dJdq, *p_C = sim->C, *p_dC = sim->dC;
-    for (int i = 0; i < sim->constraints->n_constr; i++, p_JQ++) {
-        (*p_JQ) = -(*p_dJdq++) - (*p_JQ) - KS * (*p_C++) - KD * (*p_dC++);
+    for (i = 0; i < sim->constraints->n_constr; i++) {
+        sim->b[i] = -sim->dJdq[i] - JQ[i] - K_S * sim->C[i] - K_D * sim->dC[i];
     }
 
     if (minres_solve(sim->JJT, sim->b, sim->lambda) == ERROR)
         return;
 
     sparse_transpose_mul_vec(sim->J, sim->lambda, sim->d2q);
-    add_vec_inplace(sim->d2q, 1, sim->Q, 3 * n * m);
+
+    for (i = 0; i < 3 * n * m; i++) {
+        sim->d2q[i] += sim->Q[i];
+    }
+
     add_vec_inplace(sim->dq, dt, sim->d2q, 3 * n * m);
     add_vec_inplace(sim->q, dt, sim->dq, 3 * n * m);
 }
+
+void output_positions(simulation *sim) { print_array(sim->q, 1, 3 * sim->n * sim->m); }

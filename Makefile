@@ -1,8 +1,15 @@
-INCL=-Iinclude
+COMPFLAGS := -g -Iinclude
+LINKFLAGS := -g
 
-main: src/sparse_linalg.c src/linalg.c src/solver.c src/main.c
-	gcc $(INCL) -c -o bin/sparse_linalg.o src/sparse_linalg.c
-	gcc $(INCL) -c -o bin/linalg.o src/linalg.c
-	gcc $(INCL) -c -o bin/solver.o src/solver.c
-	gcc $(INCL) -c -o bin/main.o src/main.c
-	gcc -o bin/main bin/sparse_linalg.o bin/linalg.o bin/solver.o bin/main.o
+components := main simulation constraint linalg sparse_linalg solver
+files := $(foreach component,$(components),bin/$(component).o)
+
+build: clean $(files)
+	gcc $(LINKFLAGS) -o bin/main $(files)
+
+bin/%.o:
+	gcc $(COMPFLAGS) -c -o $@ src/$(*F).c
+
+clean:
+	rm -f bin/*.o
+

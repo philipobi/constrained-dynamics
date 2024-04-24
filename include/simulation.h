@@ -13,3 +13,7 @@ typedef struct simulation {
 simulation *init_simulation(int n, int m, sfloat L);
 
 void destruct_simulation(simulation *sim);
+
+void propagate_simulation(simulation *sim, const sfloat dt);
+
+void output_positions(simulation *sim);
