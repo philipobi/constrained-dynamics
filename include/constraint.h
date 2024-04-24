@@ -8,7 +8,7 @@ typedef struct distance_constraint {
 
 typedef struct fixpoint_constraint {
     int q1;
-    sfloat *point;
+    sfloat *fixpoint;
 } fixpoint_constraint;
 
 typedef struct constraints {

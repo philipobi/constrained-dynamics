@@ -5,10 +5,11 @@
 #include <solver.h>
 #include <sparse_linalg.h>
 #include <stddef.h>
+#include <stdio.h>
 #include <stdlib.h>
 
-#define K_S 0
-#define K_D 0
+#define K_S 0.2
+#define K_D 0.2
 #define F_G -9.81
 
 simulation *init_simulation(int n, int m, sfloat L)
@@ -16,24 +17,24 @@ simulation *init_simulation(int n, int m, sfloat L)
 {
     simulation *sim = NULL;
     constraints *constr = NULL;
-    sfloat *p_vec;
     int n_constr;
+    int n_coord;
 
     // allocate memory
     if (                                                                                 //
-        !(sim = calloc(1, sizeof(simulation))) ||                                        //
-        !(constr = sim->constraints = init_constraints(n * (m - 1) + m * (n - 1), m)) || //
-        !(sim->q = malloc(3 * n * m * sizeof(sfloat))) ||                                //
-        !(sim->dq = calloc(3 * n * m, sizeof(sfloat))) ||                                // initialize velocities to 0
-        !(sim->d2q = calloc(3 * n * m, sizeof(sfloat))) ||                               // initialize accelerations to 0
-        !(sim->Q = malloc(3 * n * m * sizeof(sfloat))) ||                                //
-        !(sim->C = malloc(n_constr = constr->n_constr * sizeof(sfloat))) ||              //
-        !(sim->dC = malloc(n_constr * sizeof(sfloat))) ||                                //
-        !(sim->dJdq = malloc(n_constr * sizeof(sfloat))) ||                              //
-        !(sim->lambda = calloc(n_constr, sizeof(sfloat))) ||                             //
-        !(sim->b = malloc(n_constr * sizeof(sfloat))) ||                                 //
-        !(sim->J = init_sparse(n_constr, 3 * n * m, 6)) ||                               //
-        !(sim->JJT = init_sparse(n_constr, n_constr, 10))                                //
+        !(sim = calloc(1, sizeof(simulation))) ||                                        // simulation object
+        !(constr = sim->constraints = init_constraints(n * (m - 1) + m * (n - 1), m)) || // constraint objects
+        !(sim->q = malloc(sizeof(sfloat) * (n_coord = 3 * n * m))) ||                    // positions
+        !(sim->dq = calloc(n_coord, sizeof(sfloat))) ||                                  // initialize velocities to 0
+        !(sim->d2q = calloc(n_coord, sizeof(sfloat))) ||                                 // initialize accelerations to 0
+        !(sim->Q = malloc(n_coord * sizeof(sfloat))) ||                                  // real forces
+        !(sim->C = malloc(sizeof(sfloat) * (n_constr = constr->n_constr))) ||            // constraint values
+        !(sim->dC = malloc(n_constr * sizeof(sfloat))) ||                                // derivative of constraint values
+        !(sim->dJdq = malloc(n_constr * sizeof(sfloat))) ||                              // dJdq
+        !(sim->x = calloc(n_constr, sizeof(sfloat))) ||                                  // lagrange multiplier
+        !(sim->b = malloc(n_constr * sizeof(sfloat))) ||                                 // eq right-hand side
+        !(sim->J = init_sparse(n_constr, n_coord, 6)) ||                                 // jacobian
+        !(sim->JWJT = init_sparse(n_constr, n_constr, 10))                               // jacobian * W * jacobian_T
     ) {
         destruct_simulation(sim);
         return NULL;
@@ -56,14 +57,17 @@ simulation *init_simulation(int n, int m, sfloat L)
         }
     }
 
+    sfloat *p_vec;
+
     // setup fixpoint constraints
     fixpoint_constraint *p_fixpoint_c = constr->fixpoint_constraints;
-    for (j = 0, p_vec = constr->fixpoints; j < m; j++) {
+    p_vec = constr->fixpoints;
+    for (j = 0; j < constr->n_fixpoint_c; j++, p_fixpoint_c++) {
         p_fixpoint_c->q1 = 3 * j;
-        p_fixpoint_c->point = p_vec;
-        *p_vec++ = 0;
-        *p_vec++ = j * L;
-        *p_vec++ = 0;
+        p_fixpoint_c->fixpoint = p_vec;
+        *p_vec++ = 0;     // fixpoint_x
+        *p_vec++ = j * L; // fixpoint_y
+        *p_vec++ = 0;     // fixpoint_z
     }
 
     // setup location vector q
@@ -78,7 +82,7 @@ simulation *init_simulation(int n, int m, sfloat L)
 
     // setup force vector Q
     p_vec = sim->Q;
-    for (i = 0; i < 3 * n * m; i++) {
+    for (i = 0; i < n_coord; i++) {
         *p_vec++ = 0;   // F_x
         *p_vec++ = 0;   // F_y
         *p_vec++ = F_G; // F_z
@@ -100,39 +104,67 @@ void destruct_simulation(simulation *sim) {
     free(sim->C);
     free(sim->dC);
     free(sim->dJdq);
-    free(sim->lambda);
+    free(sim->x);
     free(sim->b);
     destruct_sparse(sim->J);
-    destruct_sparse(sim->JJT);
+    destruct_sparse(sim->JWJT);
     free(sim);
 }
 
 void propagate_simulation(simulation *sim, const sfloat dt) {
 
-    int i, n = sim->n, m = sim->m;
-    reset_sparse(sim->J);
-    reset_sparse(sim->JJT);
-    eval_constraints(sim);
-    sparse_mul_transpose(sim->J, sim->JJT);
-    sparse_mul_vec(sim->J, sim->dq, sim->dC);
-    sfloat *JQ = sim->b;
-    sparse_mul_vec(sim->J, sim->Q, JQ);
+    int i, n_coord = 3 * sim->n * sim->m;
 
+    // reset matrices to empty
+    reset_sparse(sim->J);
+    reset_sparse(sim->JWJT);
+
+    // evaluate constraints for current iteration and build J, C, dJdq
+    eval_constraints(sim);
+
+    // J * W * J_T
+    sparse_mul_transpose(sim->J, sim->JWJT);
+
+    // dC = J * dq
+    sparse_mul_vec(sim->J, sim->dq, sim->dC);
+
+    // b <- J * W * Q
+    sparse_mul_vec(sim->J, sim->Q, sim->b);
+
+    // b = - dJdq - J * W * Q - K_S * C - K_D * dC
+    // b <- - dJdq -b - K_S * C - K_D * dC
     for (i = 0; i < sim->constraints->n_constr; i++) {
-        sim->b[i] = -sim->dJdq[i] - JQ[i] - K_S * sim->C[i] - K_D * sim->dC[i];
+        sim->b[i] = -sim->dJdq[i] - sim->b[i] - K_S * sim->C[i] - K_D * sim->dC[i];
     }
 
-    if (minres_solve(sim->JJT, sim->b, sim->lambda) == ERROR)
+    // solve (J * W * J_T) * x = b
+    if (minres_solve(sim->JWJT, sim->b, sim->x) == -1)
         return;
 
-    sparse_transpose_mul_vec(sim->J, sim->lambda, sim->d2q);
+    // d2q <- Q_c = J_T * x
+    sparse_transpose_mul_vec(sim->J, sim->x, sim->d2q);
 
-    for (i = 0; i < 3 * n * m; i++) {
+    // d2q = W * (Q + Q_c)
+    // d2q <- Q + d2q
+    for (i = 0; i < n_coord; i++) {
         sim->d2q[i] += sim->Q[i];
     }
 
-    add_vec_inplace(sim->dq, dt, sim->d2q, 3 * n * m);
-    add_vec_inplace(sim->q, dt, sim->dq, 3 * n * m);
+    // Integration:
+    // dq <- dq + d2q * dt
+    add_vec_inplace(sim->dq, dt, sim->d2q, n_coord);
+    // q <- q + dq * dt
+    add_vec_inplace(sim->q, dt, sim->dq, n_coord);
+
+#if DEBUG == 1
+    int n_constr = sim->constraints->n_constr;
+    pprint_array(sim->b, 1, n_constr, "b");
+    pprint_array(sim->x, 1, n_constr, "lambda");
+    printf("J\n");
+    print_sparse(sim->J);
+    printf("JJT\n");
+    print_sparse(sim->JWJT);
+#endif
 }
 
-void output_positions(simulation *sim) { print_array(sim->q, 1, 3 * sim->n * sim->m); }
+void output_positions(simulation *sim) { print_array(sim->q, sim->n * sim->m, 3); }
