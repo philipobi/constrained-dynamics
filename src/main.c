@@ -15,7 +15,7 @@ void run_simulation() {
     for (int i = 0; i < 100; i++) {
         propagate_simulation(sim, .05);
         output_positions(sim);
-        usleep(1e6);
+        // usleep(1e6);
     }
     destruct_simulation(sim);
 }
