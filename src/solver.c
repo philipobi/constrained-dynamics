@@ -156,3 +156,78 @@ exit:
     free(s);
     return k;
 }
+
+int cgs_solve(const sparse_matrix *A, const sfloat *b, sfloat *x) {
+    sfloat tol2 = square(EPSILON);
+    int i, k, n = A->n;
+
+    sfloat *mem;
+    sfloat *r, *rt, *p, *q, *u, *hat;
+
+    if (!(mem = malloc(6 * n * sizeof(sfloat)))) {
+        return -1;
+    }
+
+    sfloat *vhat, *uhat, *qhat, *Ax0;
+
+    r = mem;
+    rt = r + n;
+    p = rt + n;
+    q = p + n;
+    u = q + n;
+    hat = u + n;
+
+    vhat = uhat = hat;
+    qhat = u;
+    Ax0 = r;
+
+    sfloat beta, alpha;
+    sfloat rho[2];
+    sfloat *rho1 = rho, *rho2 = rho + 1, *temp;
+
+    sparse_mul_vec(A, x, Ax0);
+    for (i = 0; i < n; i++)
+        rt[i] = r[i] = (b[i] - Ax0[i]);
+
+    for (                   //
+        k = 1; k < MAXITER; //
+        // k -> k+1
+        k++,                       //
+        swap_ptr(rho1, rho2, temp) //
+    ) {
+        *rho1 = dot(rt, r, n);
+        if (*rho1 == 0) {
+            k = 0;
+            break;
+        }
+
+        if (k == 1)
+            for (i = 0; i < n; i++)
+                p[i] = u[i] = r[i];
+        else {
+            beta = *rho1 / *rho2;
+            for (i = 0; i < n; i++)
+                p[i] = (u[i] = r[i] + beta * q[i]) + beta * (q[i] + beta * p[i]);
+        }
+
+        sparse_mul_vec(A, p, vhat);
+
+        alpha = *rho1 / dot(rt, vhat, n);
+
+        for (i = 0; i < n; i++) {
+            q[i] = u[i] - alpha * vhat[i];
+            uhat[i] = u[i] + q[i];
+            x[i] += alpha * uhat[i];
+        }
+
+        sparse_mul_vec(A, uhat, qhat);
+
+        add_vec_inplace(r, -alpha, qhat, n);
+
+        if (norm2(r, n) < tol2)
+            break;
+    }
+
+    free(mem);
+    return k;
+}

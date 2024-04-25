@@ -2,4 +2,6 @@
 #include <globaldef.h>
 #include <sparse_linalg.h>
 
-int minres_solve (const sparse_matrix *p_A, const sfloat *p_b, sfloat *p_x);
+int minres_solve(const sparse_matrix *A, const sfloat *b, sfloat *x);
+
+int cgs_solve(const sparse_matrix *A, const sfloat *b, sfloat *x);

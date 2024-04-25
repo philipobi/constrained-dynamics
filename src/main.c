@@ -6,6 +6,7 @@
 #include <sparse_linalg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <unistd.h>
 
 void run_simulation() {
@@ -13,7 +14,7 @@ void run_simulation() {
     if (!sim)
         return;
     for (int i = 0; i < 100; i++) {
-        propagate_simulation(sim, .05);
+        propagate_simulation(sim, .01);
         output_positions(sim);
         // usleep(1e6);
     }
@@ -36,7 +37,7 @@ void test() {
         !(n == m && m == l && k == 1) ||       //
         !(x = calloc(m, sizeof(sfloat))) ||    //
         !(array_to_sparse(A_, n, m, &A), A) || //
-        minres_solve(A, b, x) == -1)           //
+        cgs_solve(A, b, x) == -1)              //
     {
         printf("Error occurred.\n");
         goto exit;

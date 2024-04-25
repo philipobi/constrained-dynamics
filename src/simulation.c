@@ -8,8 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#define K_S 0.2
-#define K_D 0.2
+#define K_S 0.1
+#define K_D 0.1
 #define F_G -9.81
 
 simulation *init_simulation(int n, int m, sfloat L)
@@ -138,7 +138,7 @@ void propagate_simulation(simulation *sim, const sfloat dt) {
     }
 
     // solve (J * W * J_T) * x = b
-    if (minres_solve(sim->JWJT, sim->b, sim->x) == -1)
+    if (cgs_solve(sim->JWJT, sim->b, sim->x) == -1)
         return;
 
     // d2q <- Q_c = J_T * x

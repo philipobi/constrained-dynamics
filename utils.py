@@ -130,6 +130,6 @@ class Simulation():
 
     def run(self,dt):
         self.eval()
-        self.solve_cgs()
+        self.solve_lsq()
         self.prop(dt)
 

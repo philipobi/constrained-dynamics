@@ -19,7 +19,8 @@
         "sstream": "c",
         "simulation.h": "c",
         "sparse_linalg.h": "c",
-        "constraint.h": "c"
+        "constraint.h": "c",
+        "solver.h": "c"
     },
     "C_Cpp.intelliSenseEngineFallback": "disabled",
     "C_Cpp.default.includePath": [
