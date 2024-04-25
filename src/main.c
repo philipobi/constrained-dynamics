@@ -54,7 +54,20 @@ exit:
     destruct_sparse(A);
 }
 
+void test_sim() {
+    simulation *sim = NULL;
+    if (!(sim = init_simulation(3, 3, 5)))
+        goto exit;
+
+    while (1) {
+        test_simulation(sim, 0.01);
+    }
+
+exit:
+    destruct_simulation(sim);
+}
+
 int main() {
-    run_simulation();
+    test_sim();
     return 0;
 }

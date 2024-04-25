@@ -31,7 +31,8 @@ simulation *init_simulation(int n, int m, sfloat L)
         !(sim->C = malloc(sizeof(sfloat) * (n_constr = constr->n_constr))) ||            // constraint values
         !(sim->dC = malloc(n_constr * sizeof(sfloat))) ||                                // derivative of constraint values
         !(sim->dJdq = malloc(n_constr * sizeof(sfloat))) ||                              // dJdq
-        !(sim->x = calloc(n_constr, sizeof(sfloat))) ||                                  // lagrange multiplier
+        !(sim->x = malloc(n_constr * sizeof(sfloat))) ||                                 // lagrange multiplier
+        !(sim->zeros = calloc(n_constr, sizeof(sfloat))) ||                              // zeros for lagrange multiplier
         !(sim->b = malloc(n_constr * sizeof(sfloat))) ||                                 // eq right-hand side
         !(sim->J = init_sparse(n_constr, n_coord, 6)) ||                                 // jacobian
         !(sim->JWJT = init_sparse(n_constr, n_constr, 10))                               // jacobian * W * jacobian_T
@@ -105,6 +106,7 @@ void destruct_simulation(simulation *sim) {
     free(sim->dC);
     free(sim->dJdq);
     free(sim->x);
+    free(sim->zeros);
     free(sim->b);
     destruct_sparse(sim->J);
     destruct_sparse(sim->JWJT);
@@ -113,11 +115,26 @@ void destruct_simulation(simulation *sim) {
 
 void propagate_simulation(simulation *sim, const sfloat dt) {
 
-    int i, n_coord = 3 * sim->n * sim->m;
+    int i, n_coord = 3 * sim->n * sim->m, n_constr = sim->constraints->n_constr;
 
     // reset matrices to empty
-    reset_sparse(sim->J);
-    reset_sparse(sim->JWJT);
+    destruct_sparse(sim->J);
+    sim->J = init_sparse(n_constr, n_coord, 6);
+    destruct_sparse(sim->JWJT);
+    sim->JWJT = init_sparse(n_constr, n_constr, 10);
+
+    if (!sim->J || !sim->JWJT) {
+        printf("error");
+        return;
+    }
+    // reset vectors
+    copy_vec(sim->zeros, sim->x, n_constr);
+    copy_vec(sim->zeros, sim->dC, n_constr);
+    copy_vec(sim->zeros, sim->C, n_constr);
+    copy_vec(sim->zeros, sim->dJdq, n_constr);
+    copy_vec(sim->zeros, sim->b, n_constr);
+    for (i = 0; i < n_coord; i++)
+        sim->d2q[i] = 0;
 
     // evaluate constraints for current iteration and build J, C, dJdq
     eval_constraints(sim);
@@ -168,3 +185,46 @@ void propagate_simulation(simulation *sim, const sfloat dt) {
 }
 
 void output_positions(simulation *sim) { print_array(sim->q, sim->n * sim->m, 3); }
+
+void test_simulation(simulation *sim, sfloat dt) {
+    FILE *f_q = NULL, *f_dq = NULL, *f_Q = NULL;
+
+    if (                                  //
+        !(f_q = fopen("q.txt", "r")) ||   //
+        !(f_dq = fopen("dq.txt", "r")) || //
+        !(f_Q = fopen("F.txt", "r"))      //
+    ) {
+        printf("error occurred\n");
+        goto exit;
+    }
+    int n, m;
+    sfloat *q, *dq, *Q;
+    parse_array(f_q, &q, &n, &m);
+    parse_array(f_dq, &dq, &n, &m);
+    parse_array(f_Q, &Q, &n, &m);
+
+    copy_vec(q, sim->q, m);
+    copy_vec(dq, sim->dq, m);
+    copy_vec(Q, sim->Q, m);
+
+    printf("\n\nNew Iteration\n\n");
+    printf("\n\nq\n\n");
+    print_array(sim->q, 27, 1);
+    printf("\n\ndq\n\n");
+    print_array(sim->dq, 27, 1);
+
+    propagate_simulation(sim, dt);
+
+    printf("\n\nq\n\n");
+    print_array(sim->q, 27, 1);
+    printf("\n\ndq\n\n");
+    print_array(sim->dq, 27, 1);
+
+exit:
+    free(q);
+    free(dq);
+    free(Q);
+    fclose(f_q);
+    fclose(f_dq);
+    fclose(f_Q);
+}

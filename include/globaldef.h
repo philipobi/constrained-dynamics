@@ -6,7 +6,7 @@
 #define swap_ptr(a, b, temp) temp = b, b = a, a = temp
 #define EPSILON 1e-6
 #define DEBUG 0
-#define NUMFMT "%f "
+#define NUMFMT "%.8e "
 
 typedef double sfloat;
 

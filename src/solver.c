@@ -44,12 +44,9 @@ int minres_solve(const sparse_matrix *A, const sfloat *b, sfloat *x) {
 
     // setup:
     // p_0 = r_0 = b - A * x_0
-    sparse_mul_vec(A, x, (Ax0 = s_k));
+    // sparse_mul_vec(A, x, (Ax0 = s_k));
     for (i = 0; i < n; i++)
-        p_k[i] = r[i] = (b[i] - Ax0[i]);
-
-    if ((distance = norm2(r, n)) < tol2)
-        goto exit;
+        p_k[i] = r[i] = b[i]; //(b[i] - Ax0[i]);
 
     // s_0 = A*p_0
     sparse_mul_vec(A, p_k, s_k);
@@ -67,7 +64,10 @@ int minres_solve(const sparse_matrix *A, const sfloat *b, sfloat *x) {
     // a_0 = (r_0 * s_0) / (s_0)^2
     alpha = dot(r, s_k_1, n) / (*s2k_1 = norm2(s_k_1, n));
     // x_1 = x_0 + a_0 * p_0
-    add_vec_inplace(x, alpha, p_k_1, n);
+    for (i = 0; i < n; i++)
+        x[i] = alpha * p_k_1[i];
+    // add_vec_inplace(x, alpha, p_k_1, n);
+
     // r_1 = r_0 - a_0 * s_0
     add_vec_inplace(r, -alpha, s_k_1, n);
 
@@ -168,7 +168,7 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, sfloat *x) {
         return -1;
     }
 
-    sfloat *vhat, *uhat, *qhat, *Ax0;
+    sfloat *vhat, *uhat, *qhat, *Ax;
 
     r = mem;
     rt = r + n;
@@ -179,15 +179,15 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, sfloat *x) {
 
     vhat = uhat = hat;
     qhat = u;
-    Ax0 = r;
+    Ax = r;
 
-    sfloat beta, alpha;
+    sfloat beta, alpha, rv;
     sfloat rho[2];
     sfloat *rho1 = rho, *rho2 = rho + 1, *temp;
 
-    sparse_mul_vec(A, x, Ax0);
+    // sparse_mul_vec(A, x, Ax);
     for (i = 0; i < n; i++)
-        rt[i] = r[i] = (b[i] - Ax0[i]);
+        rt[i] = r[i] = b[i]; //(b[i] - Ax[i]);
 
     for (                   //
         k = 1; k < MAXITER; //
@@ -212,7 +212,12 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, sfloat *x) {
 
         sparse_mul_vec(A, p, vhat);
 
-        alpha = *rho1 / dot(rt, vhat, n);
+        if ((rv = dot(rt, vhat, n)) == 0) {
+            k = 0;
+            break;
+        }
+
+        alpha = *rho1 / rv;
 
         for (i = 0; i < n; i++) {
             q[i] = u[i] - alpha * vhat[i];
@@ -220,9 +225,10 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, sfloat *x) {
             x[i] += alpha * uhat[i];
         }
 
-        sparse_mul_vec(A, uhat, qhat);
+        sparse_mul_vec(A, x, Ax);
 
-        add_vec_inplace(r, -alpha, qhat, n);
+        for (i = 0; i < n; i++)
+            r[i] = b[i] - Ax[i];
 
         if (norm2(r, n) < tol2)
             break;
