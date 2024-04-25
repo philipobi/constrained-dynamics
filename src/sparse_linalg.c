@@ -148,6 +148,7 @@ void sparse_mul_vec(const sparse_matrix *p_matrix, const sfloat *p_vec, sfloat *
 }
 
 void sparse_transpose_mul_vec(const sparse_matrix *p_matrix, const sfloat *p_vec, sfloat *p_vec_result) {
+    reset_vec(p_vec_result, p_matrix->m);
     int i, j;
     const sparse_row *p_row = p_matrix->rows;
     const int *p_col;

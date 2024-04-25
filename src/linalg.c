@@ -106,3 +106,8 @@ void copy_vec(const sfloat *p_src, sfloat *p_dest, const int n) {
     for (int i = 0; i < n; i++)
         *p_dest++ = *p_src++;
 }
+
+void reset_vec(sfloat *vec, const int n) {
+    for (int i = 0; i < n; i++)
+        vec[i] = 0;
+}
