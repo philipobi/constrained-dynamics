@@ -160,7 +160,7 @@ void propagate_simulation(simulation *sim, const sfloat dt) {
     }
 
     // solve (J * W * J_T) * x = b
-    if (cgs_solve(sim->JWJT, sim->b, sim->x) == -1)
+    if (cgs_solve(sim->JWJT, sim->b, NULL, sim->x) == -1)
         return;
 
     // Q_c = J_T * x

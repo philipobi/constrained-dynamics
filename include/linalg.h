@@ -14,10 +14,6 @@ sfloat norm2(const sfloat *p_vec, const int n);
 
 void add_vec(const sfloat *p_x, const sfloat a, const sfloat *p_v, sfloat *p_y, const int n);
 
-void add_vec_inplace(sfloat *p_x, const sfloat a, const sfloat *p_v, const int n);
-
-void add_2vec_inplace(sfloat *p_x, const sfloat a, const sfloat *p_u, const sfloat b, const sfloat *p_v, const int n);
-
 void copy_vec(const sfloat *p_src, sfloat *p_dest, const int n);
 
 void reset_vec(sfloat *vec, const int n);

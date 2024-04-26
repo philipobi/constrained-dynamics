@@ -37,7 +37,7 @@ void test() {
         !(n == m && m == l && k == 1) ||       //
         !(x = calloc(m, sizeof(sfloat))) ||    //
         !(array_to_sparse(A_, n, m, &A), A) || //
-        cgs_solve(A, b, x) == -1)              //
+        cgs_solve(A, b, NULL, x) == -1)        //
     {
         printf("Error occurred.\n");
         goto exit;

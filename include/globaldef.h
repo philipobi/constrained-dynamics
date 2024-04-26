@@ -9,5 +9,3 @@
 #define NUMFMT "%.8e "
 
 typedef double sfloat;
-
-enum { SUCCESS, ERROR };
