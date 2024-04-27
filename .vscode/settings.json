@@ -20,7 +20,8 @@
         "simulation.h": "c",
         "sparse_linalg.h": "c",
         "constraint.h": "c",
-        "solver.h": "c"
+        "solver.h": "c",
+        "unistd.h": "c"
     },
     "C_Cpp.intelliSenseEngineFallback": "disabled",
     "C_Cpp.default.includePath": [

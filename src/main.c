@@ -13,8 +13,8 @@ void run_simulation() {
     simulation *sim = init_simulation(3, 3, 5);
     if (!sim)
         return;
-    for (int i = 0; i < 100; i++) {
-        propagate_simulation(sim, .01);
+    for (int i = 0; i < 1000; i++) {
+        propagate_simulation(sim, .05);
         output_positions(sim);
         // usleep(1e6);
     }
@@ -68,6 +68,6 @@ exit:
 }
 
 int main() {
-    test_sim();
+    run_simulation();
     return 0;
 }

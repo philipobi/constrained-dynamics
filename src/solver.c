@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #define MAXITER 100
 
-int minres_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat *x) {
+int cr_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat *x) {
+    // conjugate residual
+    // algorithm source: https://en.wikipedia.org/wiki/Minimal_residual_method
     // solve A*x = b for x
     // A: (n x n)-matrix
     // x: n-dim. vector
@@ -47,13 +49,16 @@ int minres_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfl
     // setup:
     // p_0 = r_0 = b - A * x_0
     if (x_0) {
-        sparse_mul_vec(A, x_0, (Ax = p_k));
+        sparse_mul_vec(A, x_0, (Ax = r));
         for (i = 0; i < n; i++)
             p_k[i] = r[i] = (b[i] - Ax[i]);
     } else {
         for (i = 0; i < n; i++)
             p_k[i] = r[i] = b[i];
     }
+
+    if (norm2(r, n) < tol2)
+        goto exit;
 
     // s_0 = A*p_0
     sparse_mul_vec(A, p_k, s_k);
@@ -68,7 +73,12 @@ int minres_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfl
     // #######
 
     // a_0 = (r_0 * s_0) / (s_0)^2
-    alpha = dot(r, s_k_1, n) / (*s2k_1 = norm2(s_k_1, n));
+    if ((*s2k_1 = norm2(s_k_1, n)) == 0) {
+        k = -2;
+        goto exit;
+    }
+
+    alpha = dot(r, s_k_1, n) / *s2k_1;
 
     // x_1 = x_0 + a_0 * p_0
     if (x_0) {
@@ -125,7 +135,11 @@ int minres_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfl
         k++                           //
     ) {
         // a_k-1 = (r_k-1 * s_k-1) / (s_k-1)^2
-        alpha = dot(r, s_k_1, n) / (*s2k_1 = norm2(s_k_1, n));
+        if ((*s2k_1 = norm2(s_k_1, n)) == 0) {
+            k = -2;
+            break;
+        }
+        alpha = dot(r, s_k_1, n) / *s2k_1;
 
         for (i = 0; i < n; i++) {
             // x_k = x_k-1 + a_k-1 * p_k-1
@@ -179,6 +193,9 @@ exit:
 }
 
 int cgs_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat *x) {
+    // conjugate squared
+    // algorithm source: https://en.wikipedia.org/wiki/Conjugate_gradient_squared_method
+
     sfloat tol2 = square(EPSILON);
     int i, k, n = A->n;
 
@@ -190,7 +207,7 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat
         goto exit;
     }
 
-    sfloat *vhat, *uhat, *qhat, *Ax = r;
+    sfloat *vhat, *uhat, *qhat, *Ax;
 
     r = mem;
     rt = r + n;
@@ -201,6 +218,7 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat
 
     vhat = uhat = hat;
     qhat = u;
+    Ax = r;
 
     sfloat beta, alpha, rv;
     sfloat rho[2];
@@ -254,15 +272,16 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat
         }
     }
 
-    sparse_mul_vec(A, x, Ax);
+    sparse_mul_vec(A, uhat, qhat);
 
     for (i = 0; i < n; i++)
-        r[i] = b[i] - Ax[i];
+        r[i] -= alpha * qhat[i];
 
     if (norm2(r, n) < tol2)
         goto exit;
 
     k++;
+    swap_ptr(rho1, rho2, temp);
 
     // k > 1
     for (              //
@@ -271,8 +290,8 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat
         k++,                       //
         swap_ptr(rho1, rho2, temp) //
     ) {
-        *rho1 = dot(rt, r, n);
-        if (*rho1 == 0) {
+
+        if ((*rho1 = dot(rt, r, n)) == 0) {
             k = 0;
             break;
         }
@@ -296,10 +315,10 @@ int cgs_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat
             x[i] += alpha * uhat[i];
         }
 
-        sparse_mul_vec(A, x, Ax);
+        sparse_mul_vec(A, uhat, qhat);
 
         for (i = 0; i < n; i++)
-            r[i] = b[i] - Ax[i];
+            r[i] -= alpha * qhat[i];
 
         if (norm2(r, n) < tol2)
             break;

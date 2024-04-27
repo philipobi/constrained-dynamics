@@ -160,7 +160,7 @@ void propagate_simulation(simulation *sim, const sfloat dt) {
     }
 
     // solve (J * W * J_T) * x = b
-    if (cgs_solve(sim->JWJT, sim->b, NULL, sim->x) == -1)
+    if (cr_solve(sim->JWJT, sim->b, NULL, sim->x) == -1)
         return;
 
     // Q_c = J_T * x
@@ -172,12 +172,12 @@ void propagate_simulation(simulation *sim, const sfloat dt) {
 
         // Integration:
         // dq <- dq + d2q * dt
-        sim->dq[i] += dt * sim->d2q[i];
+        sim->dq[i] += sim->d2q[i] * dt;
         // q <- q + dq * dt
-        sim->q[i] += dt * sim->dq[i];
+        sim->q[i] += sim->dq[i] * dt;
     }
 
-#if DEBUG == 1
+#if DEBUG >= 1
     int n_constr = sim->constraints->n_constr;
     pprint_array(sim->b, 1, n_constr, "b");
     pprint_array(sim->x, 1, n_constr, "lambda");
@@ -188,7 +188,7 @@ void propagate_simulation(simulation *sim, const sfloat dt) {
 #endif
 }
 
-void output_positions(simulation *sim) { print_array(sim->q, sim->n * sim->m, 3); }
+void output_positions(simulation *sim) { print_array(sim->q, 1, 3 * sim->n * sim->m); }
 
 void test_simulation(simulation *sim, sfloat dt) {
     FILE *f_q = NULL, *f_dq = NULL, *f_Q = NULL;
