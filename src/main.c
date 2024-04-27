@@ -13,11 +13,17 @@ void run_simulation() {
     simulation *sim = init_simulation(3, 3, 5);
     if (!sim)
         return;
-    for (int i = 0; i < 1000; i++) {
-        propagate_simulation(sim, .05);
+
+    clock_t start = clock();
+    for (int i = 0; i < 10000; i++) {
+        propagate_simulation(sim, .01);
         output_positions(sim);
         // usleep(1e6);
     }
+
+    float seconds = (float)(clock() - start) / CLOCKS_PER_SEC;
+    printf("%f seconds\n", seconds);
+
     destruct_simulation(sim);
 }
 

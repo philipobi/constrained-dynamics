@@ -13,6 +13,7 @@ import subprocess
 global i
 i = 0
 positions = np.loadtxt("positions.txt")
+n,_ = positions.shape
 
 def main():
 
@@ -33,12 +34,12 @@ def main():
 
     def update_graph(num):
         global i
-        i = (i+1) if i < 99 else 0
+        i = (i+1) if i < n else 0
         data = positions[i].reshape(-1,3)
         graph._offsets3d = (data[:,0], data[:,1], data[:,2])
 
     ani = matplotlib.animation.FuncAnimation(fig, update_graph, 2000, 
-                                interval=100, blit=False)
+                                interval=1, blit=False)
 
     plt.show()
 
