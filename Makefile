@@ -1,18 +1,15 @@
-CC=g++ -std=c++17
-C=gcc
-INCL=-I"/Users/philip/Documents/coding/terminal graphics/include" -I/opt/homebrew/Cellar/eigen/3.4.0_1/include
+COMPFLAGS := -Iinclude
+LINKFLAGS :=
 
-main: src/main.cpp src/utils.cpp 
-	$(CC) $(INCL) src/main.cpp src/utils.cpp -o bin/main
+components := main simulation constraint linalg sparse_linalg solver
+files := $(foreach component,$(components),bin/$(component).o)
 
-donut: src/donut.cpp src/utils.cpp 
-	$(CC) $(INCL) src/donut.cpp src/utils.cpp -o bin/donut
+build: clean $(files)
+	gcc $(LINKFLAGS) -o bin/main $(files)
 
-debug_main: src/main.cpp src/utils.cpp 
-	$(CC) $(INCL) src/main.cpp src/utils.cpp -g -o bin/main
+bin/%.o:
+	gcc $(COMPFLAGS) -c -o $@ src/$(*F).c
 
-test: src/test.c
-
-	$(C) src/test.c -o bin/test
-
+clean:
+	rm -f bin/*.o
 

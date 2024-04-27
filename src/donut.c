@@ -1,17 +1,15 @@
 #include <math.h>
-#include <iostream>
-#include <utils.h>
-#include <unistd.h>
 #include <stdio.h>
-//#include <string.h>
+#include <unistd.h>
+#include <string.h>
 
 #define x_stretch 1.5
 #define screeny 50
 
-double R=7.0;
-double r=3.0;
+double R=2.0;
+double r=1.0;
 double d1=20.0;
-double d2=2.0;
+double d2=4.0;
 int n_theta = 100;
 int n_phi = 100;
 
@@ -39,7 +37,6 @@ double light_direction[3];
 
 const char light_level[] = {'.', ',', '-', '~', ':', ';', '=', '!', '*', '#', '$', '@'};
 
-Screen s(screenx, screeny, d1, d2);
 
 void setup()
 {
@@ -71,8 +68,8 @@ void mat_vec_mul(const double mat[3][3], const double vec[3], double* result)
 
 void render(double psi)
 {
-    //memcpy(screen,screen_empty,sizeof(char)*screeny*(screenx+1));
-    //memcpy(xbuf,xbuf_empty,sizeof(double)*screeny*screenx);
+    memcpy(screen,screen_empty,sizeof(char)*screeny*(screenx+1));
+    memcpy(xbuf,xbuf_empty,sizeof(double)*screeny*screenx);
     
     sin_psi = sin(psi);
     cos_psi = cos(psi);
@@ -110,22 +107,13 @@ void render(double psi)
 
             mat_vec_mul(rot_matrix,r_vec,r_vec_rot);
             
-            x = -r_vec_rot[0]; //+d2;
+            x = -r_vec_rot[0]+d2;
             y = r_vec_rot[1];
             z = r_vec_rot[2];
-            //factor = d1/x;
+            factor = d1/x;
             
-            //x_index = half_screen_x + round(y*x_stretch*factor);
-            //y_index = half_screen_y + round(z*factor);
-
-            normal_vec[0] = -sin_phi;
-            normal_vec[1] = cos_phi*cos_theta;
-            normal_vec[2] = cos_phi*sin_theta;
-            mat_vec_mul(rot_matrix,normal_vec,normal_vec_rot);
-            
-            s.set(z*x_stretch,y,x,light_level[(int) round((dot(normal_vec_rot,light_direction)*(-1.0)+1.0)*5.5)]);
-            
-            continue;
+            x_index = half_screen_x + round(y*x_stretch*factor);
+            y_index = half_screen_y + round(z*factor);
 
             if(factor > xbuf[y_index][x_index])
             {
@@ -139,16 +127,12 @@ void render(double psi)
             }
         }
     }
-
-    std::cout << s << std::endl;
-    s.clear();
-    return;
     for(int i=0; i<screeny; ++i) printf("%s\n",screen[i]);
 }
 
 int main()
 {   
-    //setup();
+    setup();
     
     n1=0.0;n2=0.0;n3=1.0;
     dtheta = 2*M_PI/n_theta;
@@ -163,7 +147,7 @@ int main()
     {
         render(psi);
         usleep(1000);
-        //printf("\033[%dA",screeny);
+        printf("\033[%dA",screeny);
     }
     
 }
