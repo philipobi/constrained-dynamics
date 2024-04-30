@@ -1,5 +1,5 @@
-COMPFLAGS := -Iinclude
-LINKFLAGS :=
+COMPFLAGS := -O3 -Iinclude
+LINKFLAGS := -O3
 
 components := main simulation constraint linalg sparse_linalg solver
 files := $(foreach component,$(components),bin/$(component).o)
