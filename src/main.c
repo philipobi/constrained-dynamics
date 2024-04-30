@@ -22,7 +22,7 @@ void run_simulation() {
     }
 
     float seconds = (float)(clock() - start) / CLOCKS_PER_SEC;
-    printf("%f seconds\n", seconds);
+    // printf("%f seconds\n", seconds);
 
     destruct_simulation(sim);
 }
