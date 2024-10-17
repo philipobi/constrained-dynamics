@@ -1,9 +1,11 @@
 # Constrained Dynamics Simulation
 
+!(./showcase.gif)
+
 ## Sources
-https://www.cs.cmu.edu/~baraff/pbm/constraints.pdf
-https://en.wikipedia.org/wiki/Minimal_residual_method
-https://en.wikipedia.org/wiki/Conjugate_gradient_squared_method
+* https://www.cs.cmu.edu/~baraff/pbm/constraints.pdf
+* https://en.wikipedia.org/wiki/Minimal_residual_method
+* https://en.wikipedia.org/wiki/Conjugate_gradient_squared_method
 
 ## Installation/Usage (Linux & macOS)
 
