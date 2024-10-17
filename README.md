@@ -1,6 +1,6 @@
 # Constrained Dynamics Simulation
 
-!(./showcase.gif)
+<img src="showcase.gif" width="400"/>
 
 ## Sources
 * https://www.cs.cmu.edu/~baraff/pbm/constraints.pdf
