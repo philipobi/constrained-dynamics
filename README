@@ -1,9 +1,0 @@
-make build
-./bin/main > positions.txt
-
-python3 -m venv .venv
-source .venv/bin/activate
-pip install numpy matplotlib
-chmod +x animation.py
-
-./animation.py

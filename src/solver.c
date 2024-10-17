@@ -8,7 +8,6 @@
 
 int cr_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat *x) {
     // conjugate residual
-    // algorithm source: https://en.wikipedia.org/wiki/Minimal_residual_method
     // solve A*x = b for x
     // A: (n x n)-matrix
     // x: n-dim. vector
@@ -194,7 +193,6 @@ exit:
 
 int cgs_solve(const sparse_matrix *A, const sfloat *b, const sfloat *x_0, sfloat *x) {
     // conjugate squared
-    // algorithm source: https://en.wikipedia.org/wiki/Conjugate_gradient_squared_method
 
     sfloat tol2 = square(EPSILON);
     int i, k, n = A->n;
